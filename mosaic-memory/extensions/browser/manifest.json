@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Mosaic Memory Collector",
+  "description": "Locally captures opted-in browser, YouTube, LeetCode, and offline document activity for Mosaic Memory.",
+  "version": "0.3.1",
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "host_permissions": [
+    "http://127.0.0.1:8000/*",
+    "http://localhost:8000/*",
+    "file:///*",
+    "*://*/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*", "*://youtu.be/*"],
+      "js": ["youtube-content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_page": "options.html",
+  "action": {
+    "default_title": "Mosaic Memory Collector"
+  }
+}

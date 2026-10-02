@@ -1,0 +1,42 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# JavaScript / Node
+node_modules/
+.next/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Private local data
+data/
+.env
+.env.local
+*.db
+*.sqlite
+*.sqlite3
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Docker
+*.log
+
+# Build artifacts
+out/
+*.vsix
+
+# uv
+uv.lock

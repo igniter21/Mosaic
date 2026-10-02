@@ -1,0 +1,42 @@
+{
+  "name": "mosaic-memory-collector",
+  "displayName": "Mosaic Memory Collector",
+  "description": "Collects opted-in VS Code activity metadata into a local Mosaic Memory API.",
+  "version": "0.1.0",
+  "publisher": "mosaic-memory-local",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Other"],
+  "main": "./out/extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      { "command": "mosaicMemory.enable", "title": "Mosaic Memory: Enable Metadata Collection" },
+      { "command": "mosaicMemory.disable", "title": "Mosaic Memory: Disable Metadata Collection" }
+    ],
+    "configuration": {
+      "title": "Mosaic Memory",
+      "properties": {
+        "mosaicMemory.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Collect editor metadata. This never reads or sends document contents."
+        },
+        "mosaicMemory.apiBaseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8000",
+          "description": "Base URL of the local Mosaic Memory API."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "package": "npx @vscode/vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.6.0",
+    "typescript": "^5.0.0"
+  }
+}

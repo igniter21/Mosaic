@@ -1,0 +1,60 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Mosaic Memory Event",
+    "type": "object",
+    "required": [
+        "event_id",
+        "occurred_at",
+        "source",
+        "event_type",
+        "privacy_level",
+        "retention_class"
+    ],
+    "properties": {
+        "event_id": {
+            "type": "string",
+            "format": "uuid"
+        },
+        "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "source": {
+            "type": "string",
+            "enum": [
+                "browser",
+                "youtube",
+                "leetcode",
+                "vscode",
+                "document"
+            ]
+        },
+        "event_type": {
+            "type": "string"
+        },
+        "title": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "payload": {
+            "type": "object"
+        },
+        "privacy_level": {
+            "type": "string",
+            "enum": [
+                "normal",
+                "sensitive"
+            ]
+        },
+        "retention_class": {
+            "type": "string",
+            "enum": [
+                "temporary",
+                "short_term",
+                "long_term"
+            ]
+        }
+    }
+}

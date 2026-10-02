@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mosaic Memory Collector</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main>
+      <h1>Mosaic Memory Collector</h1>
+      <p>Collection stays off until you enable an individual source here and in Mosaic’s Data Sources page.</p>
+
+      <label>
+        Mosaic API address
+        <input id="api-base-url" type="url" required>
+      </label>
+
+      <fieldset>
+        <legend>Collect metadata from</legend>
+        <label><input data-source="browser" type="checkbox"> Browser pages (host, path, and page title)</label>
+        <label><input data-source="youtube" type="checkbox"> YouTube videos (video ID and page title)</label>
+        <label><input data-source="leetcode" type="checkbox"> LeetCode problems (problem slug and page title)</label>
+        <label><input data-source="document" type="checkbox"> Offline documents & articles (PDFs, saved HTML, and text files)</label>
+      </fieldset>
+
+      <section class="understand-tab">
+        <h2>Understand this tab</h2>
+        <p>Click the Mosaic toolbar icon on any page, YouTube video, offline article, or PDF document. Mosaic extracts up to 6,000 characters of clean context, sends that single excerpt to your configured AI model, and stores a verifiable local memory.</p>
+        <p><strong>For local files & offline articles (file:///):</strong> In Brave or Chromium, open <code>brave://extensions</code> (or <code>chrome://extensions</code>), click <strong>Details</strong> on Mosaic Memory Collector, and turn ON <strong>"Allow access to file URLs"</strong>.</p>
+        <p id="file-access-status" class="hint"></p>
+      </section>
+
+      <button id="save" type="button">Save settings</button>
+      <p id="status" role="status"></p>
+      <p class="hint">Do not enable a source until it is also enabled in Mosaic. The API address must be an allowed local host declared in the extension manifest.</p>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

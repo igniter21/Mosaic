@@ -1,0 +1,29 @@
+[project]
+name = "mosaic-memory-api"
+version = "0.1.0"
+description = "Local-first, evidence-backed personal activity memory API"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi[standard]>=0.141.1",
+    "pydantic-settings>=2.15.0",
+    "pypdf>=6.19.0",
+    "sqlalchemy>=2.0.52",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+    "ruff>=0.16.6",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[tool.ruff]
+target-version = "py313"
+
+[tool.ruff.lint]
+# FastAPI uses Depends and Query as intentional parameter defaults.
+ignore = ["B008"]
