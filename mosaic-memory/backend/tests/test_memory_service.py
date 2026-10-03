@@ -396,3 +396,126 @@ def test_ask_endpoint_returns_an_evidence_backed_response(db: Session) -> None:
     assert body["memories"][0]["evidence"][0]["event"]["event_id"] == event.id
     assert body["memories"][0]["source"] == "vscode"
     assert body["memories"][0]["model_id"] == "local-code-workspace-metadata-v1"
+
+
+def test_event_deduplication_coalesces_recent_events(db: Session) -> None:
+    from mosaic_memory_api.services.privacy_service import set_source_enabled
+
+    set_source_enabled(db, Source.BROWSER, True)
+    t0 = datetime(2026, 10, 3, 12, 0, 0, tzinfo=UTC)
+    t1 = t0 + timedelta(minutes=2)
+
+    event1_in = EventCreate(
+        event_id=str(uuid4()),
+        occurred_at=t0,
+        source=Source.BROWSER,
+        event_type="page_viewed",
+        title="Python Documentation",
+        payload={"host": "docs.python.org", "path": "/3/library/sqlite3.html"},
+        privacy_level="normal",
+        retention_class="short_term",
+    )
+    event1 = create_event(db, event1_in)
+    assert event1.visit_count == 1
+
+    event2_in = EventCreate(
+        event_id=str(uuid4()),
+        occurred_at=t1,
+        source=Source.BROWSER,
+        event_type="page_viewed",
+        title="Python Documentation - SQLite",
+        payload={"host": "docs.python.org", "path": "/3/library/sqlite3.html"},
+        privacy_level="normal",
+        retention_class="short_term",
+    )
+    event2 = create_event(db, event2_in)
+
+    # Should coalesce into the same record
+    assert event2.id == event1.id
+    assert event2.visit_count == 2
+    assert event2.first_seen_at == t0
+    assert event2.occurred_at == t1
+    assert db.scalar(select(func.count()).select_from(RawEvent)) == 1
+
+
+def test_distinct_events_are_not_coalesced(db: Session) -> None:
+    from mosaic_memory_api.services.privacy_service import set_source_enabled
+
+    set_source_enabled(db, Source.BROWSER, True)
+    t0 = datetime(2026, 10, 3, 12, 0, 0, tzinfo=UTC)
+
+    event1 = create_event(
+        db,
+        EventCreate(
+            event_id=str(uuid4()),
+            occurred_at=t0,
+            source=Source.BROWSER,
+            event_type="page_viewed",
+            title="Page 1",
+            payload={"host": "example.com", "path": "/page1"},
+            privacy_level="normal",
+            retention_class="short_term",
+        ),
+    )
+    event2 = create_event(
+        db,
+        EventCreate(
+            event_id=str(uuid4()),
+            occurred_at=t0 + timedelta(minutes=1),
+            source=Source.BROWSER,
+            event_type="page_viewed",
+            title="Page 2",
+            payload={"host": "example.com", "path": "/page2"},
+            privacy_level="normal",
+            retention_class="short_term",
+        ),
+    )
+
+    assert event1.id != event2.id
+    assert event1.visit_count == 1
+    assert event2.visit_count == 1
+    assert db.scalar(select(func.count()).select_from(RawEvent)) == 2
+
+
+def test_erase_all_memory_clears_all_subsystems(db: Session) -> None:
+    from mosaic_memory_api.db.context_models import (
+        ActivitySession,
+        ContextCapsule,
+        Goal,
+        Project,
+        SessionEvent,
+    )
+    from mosaic_memory_api.services.privacy_service import erase_all_local_memory
+
+    # Setup events, sessions, goals, projects
+    ev = add_event(
+        db,
+        source=Source.GIT,
+        event_type="commit",
+        title="feat: add thing",
+    )
+    proj = Project(name="TestProj", slug="test-proj")
+    goal = Goal(title="Goal 1", description="Do it")
+    sess = ActivitySession(
+        started_at=datetime.now(UTC),
+        ended_at=datetime.now(UTC),
+        summary="Working on project",
+    )
+    db.add_all([proj, goal, sess])
+    db.flush()
+    db.add(SessionEvent(session_id=sess.id, event_id=ev.id))
+    db.add(ContextCapsule(title="Capsule 1", payload={"test": True}))
+    db.commit()
+
+    # Erase all
+    result = erase_all_local_memory(db, "ERASE ALL LOCAL MEMORY")
+
+    assert result.raw_events_deleted == 1
+    assert db.scalar(select(func.count()).select_from(RawEvent)) == 0
+    assert db.scalar(select(func.count()).select_from(DerivedMemory)) == 0
+    assert db.scalar(select(func.count()).select_from(ActivitySession)) == 0
+    assert db.scalar(select(func.count()).select_from(SessionEvent)) == 0
+    assert db.scalar(select(func.count()).select_from(Goal)) == 0
+    assert db.scalar(select(func.count()).select_from(Project)) == 0
+    assert db.scalar(select(func.count()).select_from(ContextCapsule)) == 0
+

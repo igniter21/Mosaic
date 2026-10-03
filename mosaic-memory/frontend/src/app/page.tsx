@@ -152,9 +152,19 @@ export default function DashboardPage() {
                                 >
                                     <SourceMark size="small" source={event.source} />
                                     <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-medium text-[#303136]">
-                                            {event.title ?? event.event_type}
-                                        </p>
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <p className="truncate text-sm font-medium text-[#303136]">
+                                                {event.title ?? event.event_type}
+                                            </p>
+                                            {(event.visit_count ?? 1) > 1 && (
+                                                <span
+                                                    className="shrink-0 inline-flex items-center rounded-full bg-[#f0efff] px-1.5 py-0.5 text-[10px] font-bold text-[#5549db]"
+                                                    title={`Seen ${event.visit_count} times`}
+                                                >
+                                                    ×{event.visit_count}
+                                                </span>
+                                            )}
+                                        </div>
                                         <p className="mt-1 text-xs text-[#89898e]">
                                             {sourceLabel(event.source)} · {event.event_type.replaceAll("_", " ")}
                                         </p>

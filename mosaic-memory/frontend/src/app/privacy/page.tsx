@@ -14,6 +14,7 @@ const sourceOptions: Source[] = [
     "leetcode",
     "vscode",
     "document",
+    "git",
 ];
 
 export default function PrivacyPage() {

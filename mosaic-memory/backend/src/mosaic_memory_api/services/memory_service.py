@@ -20,6 +20,11 @@ from uuid import uuid4
 from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
 
+from mosaic_memory_api.db.context_models import (
+    GoalMemory,
+    MemoryLifecycle,
+    ProjectMemory,
+)
 from mosaic_memory_api.db.models import (
     DerivedMemory,
     MemoryEmbedding,
@@ -27,6 +32,7 @@ from mosaic_memory_api.db.models import (
     MemoryLink,
     RawEvent,
 )
+from mosaic_memory_api.db.semantic_models import SemanticEmbedding
 from mosaic_memory_api.domain.events import EventRead, Source
 from mosaic_memory_api.domain.memory import (
     AskMemoryResponse,
@@ -526,19 +532,47 @@ def delete_derived_memories_for_events(
     if not event_id_list:
         return 0
 
-    memory_ids = db.scalars(
-        select(MemoryEvidence.memory_id).where(
-            MemoryEvidence.event_id.in_(event_id_list)
-        )
-    ).all()
+    memory_ids = list(
+        db.scalars(
+            select(MemoryEvidence.memory_id).where(
+                MemoryEvidence.event_id.in_(event_id_list)
+            )
+        ).all()
+    )
     if not memory_ids:
         return 0
 
+    db.execute(
+        delete(SemanticEmbedding).where(SemanticEmbedding.memory_id.in_(memory_ids))
+    )
+    db.execute(
+        delete(MemoryLifecycle).where(MemoryLifecycle.memory_id.in_(memory_ids))
+    )
+    db.execute(
+        delete(ProjectMemory).where(ProjectMemory.memory_id.in_(memory_ids))
+    )
+    db.execute(delete(GoalMemory).where(GoalMemory.memory_id.in_(memory_ids)))
+    db.execute(
+        delete(MemoryLink).where(
+            MemoryLink.source_memory_id.in_(memory_ids)
+            | MemoryLink.target_memory_id.in_(memory_ids)
+        )
+    )
+    db.execute(
+        delete(MemoryEmbedding).where(MemoryEmbedding.memory_id.in_(memory_ids))
+    )
+    db.execute(
+        delete(MemoryEvidence).where(MemoryEvidence.memory_id.in_(memory_ids))
+    )
     db.execute(delete(DerivedMemory).where(DerivedMemory.id.in_(memory_ids)))
     return len(memory_ids)
 
 
 def delete_all_derived_memory_data(db: Session) -> None:
+    db.execute(delete(SemanticEmbedding))
+    db.execute(delete(MemoryLifecycle))
+    db.execute(delete(ProjectMemory))
+    db.execute(delete(GoalMemory))
     db.execute(delete(MemoryLink))
     db.execute(delete(MemoryEmbedding))
     db.execute(delete(MemoryEvidence))

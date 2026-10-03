@@ -194,7 +194,12 @@ export default function AskMemoryPage() {
                             </span>
                         </div>
 
-                        {result.memories.map((memory) => (
+                        {result.memories.length === 0 ? (
+                            <div className="px-6 py-10 text-center text-xs text-[#89898e]">
+                                No local activity was found matching this question.
+                            </div>
+                        ) : (
+                            result.memories.map((memory) => (
                             <article className="border-b border-[#f0f0ed] px-5 py-5 last:border-0 sm:px-6" key={memory.id}>
                                 <div className="flex gap-3">
                                     <SourceMark source={memory.source} />
@@ -240,7 +245,8 @@ export default function AskMemoryPage() {
                                     </div>
                                 </details>
                             </article>
-                        ))}
+                            ))
+                        )}
                     </section>
                 </div>
             )}

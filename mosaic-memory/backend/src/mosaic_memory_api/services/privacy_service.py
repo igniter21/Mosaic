@@ -4,6 +4,14 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from mosaic_memory_api.db.context_models import (
+    ActivitySession,
+    ContextCapsule,
+    Goal,
+    PrivacyLedgerEntry,
+    Project,
+    SessionEvent,
+)
 from mosaic_memory_api.db.models import (
     AuditLog,
     DerivedMemory,
@@ -81,6 +89,7 @@ def delete_event_by_id(db: Session, event_id: str) -> int:
         return 0
 
     delete_derived_memories_for_events(db, [event.id])
+    db.execute(delete(SessionEvent).where(SessionEvent.event_id == event.id))
     db.delete(event)
 
     db.add(
@@ -120,7 +129,10 @@ def delete_events_by_filter(
         statement = statement.where(RawEvent.occurred_at <= to_time)
 
     events = list(db.scalars(statement).all())
-    delete_derived_memories_for_events(db, [event.id for event in events])
+    event_ids = [event.id for event in events]
+    delete_derived_memories_for_events(db, event_ids)
+    if event_ids:
+        db.execute(delete(SessionEvent).where(SessionEvent.event_id.in_(event_ids)))
 
     for event in events:
         db.delete(event)
@@ -169,6 +181,12 @@ def erase_all_local_memory(
         setting.enabled = False
 
     delete_all_derived_memory_data(db)
+    db.execute(delete(SessionEvent))
+    db.execute(delete(ActivitySession))
+    db.execute(delete(Goal))
+    db.execute(delete(Project))
+    db.execute(delete(ContextCapsule))
+    db.execute(delete(PrivacyLedgerEntry))
     db.execute(delete(RawEvent))
     db.execute(delete(AuditLog))
     db.commit()

@@ -31,27 +31,19 @@ async def lifespan(_: FastAPI):
 
 def _migrate_dedup_columns() -> None:
     """Add visit_count / first_seen_at to raw_events if missing."""
-    import sqlite3
-
-    db_url = settings.database_url
-    if not db_url.startswith("sqlite"):
+    if not settings.database_url.startswith("sqlite"):
         return
-    db_path = db_url.replace("sqlite:///", "")
-    conn = sqlite3.connect(db_path)
-    try:
-        cursor = conn.execute("PRAGMA table_info(raw_events)")
-        columns = {row[1] for row in cursor.fetchall()}
+    with engine.begin() as conn:
+        result = conn.exec_driver_sql("PRAGMA table_info(raw_events)")
+        columns = {row[1] for row in result.fetchall()}
         if "visit_count" not in columns:
-            conn.execute(
+            conn.exec_driver_sql(
                 "ALTER TABLE raw_events ADD COLUMN visit_count INTEGER DEFAULT 1"
             )
         if "first_seen_at" not in columns:
-            conn.execute(
+            conn.exec_driver_sql(
                 "ALTER TABLE raw_events ADD COLUMN first_seen_at TEXT"
             )
-        conn.commit()
-    finally:
-        conn.close()
 
 
 app = FastAPI(
