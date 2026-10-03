@@ -11,6 +11,11 @@ dependencies = [
     "sqlalchemy>=2.0.52",
 ]
 
+[project.optional-dependencies]
+context = [
+    "mcp[cli]>=2.0",
+    "sentence-transformers>=5.0",
+]
 [dependency-groups]
 dev = [
     "httpx>=0.28.1",

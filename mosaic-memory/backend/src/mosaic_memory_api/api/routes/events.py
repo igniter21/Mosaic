@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from uuid import UUID
 
@@ -7,12 +8,15 @@ from sqlalchemy.orm import Session
 from mosaic_memory_api.db.session import get_db
 from mosaic_memory_api.domain.events import EventCreate, EventRead, Source
 from mosaic_memory_api.domain.privacy import DeletionResult
+from mosaic_memory_api.services.domain_policy_service import PrivacyPolicyDeniedError
 from mosaic_memory_api.services.event_service import create_event, list_events
 from mosaic_memory_api.services.privacy_service import (
     SourceDisabledError,
     delete_event_by_id,
     delete_events_by_filter,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -24,7 +28,13 @@ def ingest_event(
 ) -> EventRead:
     try:
         stored_event = create_event(db, event)
-    except SourceDisabledError as error:
+    except (SourceDisabledError, PrivacyPolicyDeniedError) as error:
+        logger.warning(
+            "Event rejected (403 Forbidden): %s (source=%s, type=%s)",
+            error,
+            event.source.value,
+            event.event_type,
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(error),

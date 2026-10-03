@@ -103,7 +103,9 @@ def test_ask_memory_returns_ranked_memories_with_raw_evidence_and_links(
     assert response.memories[0].model_id == "local-video-metadata-v1"
     assert response.memories[1].links
     assert "Strongest evidence" in response.answer
-    assert response.retrieval_method == "local lexical ranking + feature-hash similarity"
+    assert (
+        response.retrieval_method == "local lexical ranking + feature-hash similarity"
+    )
 
 
 def test_ingestion_creates_a_derived_memory_and_embedding_automatically(
@@ -127,9 +129,10 @@ def test_ingestion_creates_a_derived_memory_and_embedding_automatically(
     embedding = db.get(MemoryEmbedding, memory.id)
     assert embedding is not None
     assert embedding.model == "local-video-metadata-v1"
-    assert db.scalar(
-        select(MemoryEvidence).where(MemoryEvidence.event_id == event.id)
-    ) is not None
+    assert (
+        db.scalar(select(MemoryEvidence).where(MemoryEvidence.event_id == event.id))
+        is not None
+    )
 
 
 @pytest.mark.parametrize(
@@ -270,7 +273,8 @@ def test_ask_with_gemini_uses_only_click_approved_tab_evidence(
         title="A retrieval guide",
         host="example.com",
         path="/retrieval",
-        context_text="Retrieval systems use evidence to answer questions accurately. " * 80,
+        context_text="Retrieval systems use evidence to answer questions accurately. "
+        * 80,
     )
     monkeypatch.setattr(
         tab_context_service,
@@ -296,11 +300,17 @@ def test_ask_with_gemini_uses_only_click_approved_tab_evidence(
         limit=5,
     )
 
-    assert response.answer == "It stays accurate by grounding answers in retrieved evidence."
+    assert (
+        response.answer
+        == "It stays accurate by grounding answers in retrieved evidence."
+    )
     assert response.retrieval_method.startswith("local retrieval + Gemini")
     assert captured_evidence[0]["title"] == "A retrieval guide"
     assert "Retrieval systems" in captured_evidence[0]["excerpt"]
-    assert captured_evidence[0]["summary"] == "The guide explains evidence-grounded retrieval."
+    assert (
+        captured_evidence[0]["summary"]
+        == "The guide explains evidence-grounded retrieval."
+    )
     assert captured_evidence[0]["topics"] == ["retrieval", "evidence"]
 
 
@@ -310,7 +320,8 @@ def test_tab_context_rejects_url_query_data() -> None:
             title="Unsafe path",
             host="example.com",
             path="/account?token=not-allowed",
-            context_text="This contains enough text to validate the request safely. " * 2,
+            context_text="This contains enough text to validate the request safely. "
+            * 2,
         )
 
 

@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:3000"
     collector_origins: str = ""
     gemini_api_key: SecretStr | None = None
-    gemini_model: str = "gemini-3-flash-preview"
+    gemini_model: str = "gemini-3.6-flash"
+    auto_forget: bool = False
 
     @property
     def allowed_origins(self) -> list[str]:

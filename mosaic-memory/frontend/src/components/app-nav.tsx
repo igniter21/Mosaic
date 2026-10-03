@@ -9,6 +9,7 @@ const navigation: { href: string; label: string; icon: IconName }[] = [
     { href: "/", label: "Overview", icon: "home" },
     { href: "/timeline", label: "Timeline", icon: "clock" },
     { href: "/ask", label: "Ask memory", icon: "message" },
+    { href: "/context", label: "Context OS", icon: "sparkles" },
     { href: "/sources", label: "Data sources", icon: "database" },
     { href: "/privacy", label: "Privacy", icon: "shield" },
 ];

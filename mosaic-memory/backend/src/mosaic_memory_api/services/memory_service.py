@@ -38,6 +38,7 @@ from mosaic_memory_api.services.gemini_service import (
     GeminiRequestError,
     answer_tab_question,
 )
+from mosaic_memory_api.services.policy_service import record_privacy_action
 from mosaic_memory_api.services.source_model_router import understand_event
 
 EMBEDDING_DIMENSIONS = 192
@@ -90,10 +91,46 @@ STOP_WORDS = {
     "yesterday",
 }
 SEMANTIC_ROOTS = {
-    "learn": {"learn", "learned", "learning", "study", "studied", "studying", "tutorial", "course", "lecture"},
-    "code": {"code", "coding", "developer", "development", "program", "programming", "vscode", "github"},
-    "practice": {"challenge", "exercise", "leetcode", "practice", "problem", "solve", "solved", "solving"},
-    "research": {"browse", "browser", "read", "reading", "research", "search", "searched"},
+    "learn": {
+        "learn",
+        "learned",
+        "learning",
+        "study",
+        "studied",
+        "studying",
+        "tutorial",
+        "course",
+        "lecture",
+    },
+    "code": {
+        "code",
+        "coding",
+        "developer",
+        "development",
+        "program",
+        "programming",
+        "vscode",
+        "github",
+    },
+    "practice": {
+        "challenge",
+        "exercise",
+        "leetcode",
+        "practice",
+        "problem",
+        "solve",
+        "solved",
+        "solving",
+    },
+    "research": {
+        "browse",
+        "browser",
+        "read",
+        "reading",
+        "research",
+        "search",
+        "searched",
+    },
     "watch": {"video", "view", "viewed", "watch", "watched", "youtube"},
     "write": {"document", "file", "save", "saved", "writing", "wrote"},
 }
@@ -317,9 +354,7 @@ def evidence_for_memory(db: Session, memory_id: str) -> list[MemoryEvidenceRead]
     for event_id in event_ids:
         event = db.get(RawEvent, event_id)
         if event is not None:
-            evidence.append(
-                MemoryEvidenceRead(event=EventRead.model_validate(event))
-            )
+            evidence.append(MemoryEvidenceRead(event=EventRead.model_validate(event)))
 
     return evidence
 
@@ -350,7 +385,7 @@ def links_for_memory(db: Session, memory_id: str) -> list[MemoryLinkRead]:
 def answer_for_memories(query: str, memories: list[DerivedMemoryRead]) -> str:
     if not memories:
         return (
-            f'I could not find a strong local match for “{query}”. '
+            f"I could not find a strong local match for “{query}”. "
             "Try a source name, a title, or a simpler topic."
         )
 
@@ -412,9 +447,13 @@ def ask_memory_with_gemini(
             event = item.event
             raw_excerpt = event.payload.get("context_excerpt")
             excerpt = str(raw_excerpt).strip() if isinstance(raw_excerpt, str) else ""
-            summary = str(event.payload.get("context_summary") or memory.summary or "").strip()
+            summary = str(
+                event.payload.get("context_summary") or memory.summary or ""
+            ).strip()
             raw_topics = event.payload.get("context_topics")
-            topics = [str(t) for t in raw_topics] if isinstance(raw_topics, list) else []
+            topics = (
+                [str(t) for t in raw_topics] if isinstance(raw_topics, list) else []
+            )
             description = str(event.payload.get("description") or "").strip()
 
             if (
@@ -456,6 +495,19 @@ def ask_memory_with_gemini(
         )
 
     answer = answer_tab_question(query, evidence)
+    record_privacy_action(
+        db,
+        direction="external",
+        provider="gemini",
+        action="ask_with_gemini",
+        reason="explicit user-triggered Gemini retrieval over approved tab excerpts",
+        bytes_count=sum(
+            len(str(value).encode("utf-8"))
+            for item in evidence
+            for value in item.values()
+        ),
+        metadata={"evidence_items": len(evidence)},
+    )
     return local_result.model_copy(
         update={
             "answer": answer,
@@ -475,7 +527,9 @@ def delete_derived_memories_for_events(
         return 0
 
     memory_ids = db.scalars(
-        select(MemoryEvidence.memory_id).where(MemoryEvidence.event_id.in_(event_id_list))
+        select(MemoryEvidence.memory_id).where(
+            MemoryEvidence.event_id.in_(event_id_list)
+        )
     ).all()
     if not memory_ids:
         return 0

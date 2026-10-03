@@ -34,6 +34,10 @@ class RawEvent(Base):
     payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     privacy_level: Mapped[str] = mapped_column(String(30))
     retention_class: Mapped[str] = mapped_column(String(30))
+    visit_count: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    first_seen_at: Mapped[datetime | None] = mapped_column(
+        UtcDateTime(), nullable=True
+    )
 
 
 class DerivedMemory(Base):

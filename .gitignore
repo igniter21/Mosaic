@@ -40,3 +40,8 @@ out/
 
 # uv
 uv.lock
+
+# Local, one-off Context OS installer artifacts. The integrated source lives in
+# mosaic-memory/; retain these local copies as a recoverable installation record.
+.mosaic_upgrade_backup/
+context-upgrade/

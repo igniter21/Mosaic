@@ -64,7 +64,8 @@ def test_gemini_request_keeps_the_local_api_key_out_of_the_url(
             title="Local-only testing",
             host="example.com",
             path="/testing",
-            context_text="This is enough visible page text for the Gemini request test. " * 2,
+            context_text="This is enough visible page text for the Gemini request test. "
+            * 2,
         )
     )
 
@@ -83,13 +84,15 @@ def test_http_error_detail_formats_quota_exhaustion_message() -> None:
     from io import BytesIO
     from urllib.error import HTTPError
 
-    payload = json.dumps({
-        "error": {
-            "code": 429,
-            "message": "Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash",
-            "status": "RESOURCE_EXHAUSTED",
+    payload = json.dumps(
+        {
+            "error": {
+                "code": 429,
+                "message": "Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash",
+                "status": "RESOURCE_EXHAUSTED",
+            }
         }
-    }).encode("utf-8")
+    ).encode("utf-8")
 
     error = HTTPError(
         url="https://generativelanguage.googleapis.com",
@@ -135,7 +138,9 @@ def test_answer_tab_question_parses_json_response(monkeypatch) -> None:
                             "parts": [
                                 {
                                     "text": json.dumps(
-                                        {"answer": "There was a birthday greeting for Aaru."}
+                                        {
+                                            "answer": "There was a birthday greeting for Aaru."
+                                        }
                                     )
                                 }
                             ]
@@ -159,4 +164,3 @@ def test_answer_tab_question_parses_json_response(monkeypatch) -> None:
         ],
     )
     assert answer == "There was a birthday greeting for Aaru."
-

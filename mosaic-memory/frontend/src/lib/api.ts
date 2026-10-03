@@ -2,7 +2,16 @@ import type {
     AskMemoryResponse,
     DeletionResult,
     GlobalEraseResult,
+    ContextResult,
+    ContextSession,
+    Goal,
+    LearningGraph,
+    LifecyclePreview,
+    LifecycleRunResult,
     MemoryEvent,
+    PrivacyLedgerEntry,
+    Project,
+    SessionDetail,
     Source,
     SourceSetting,
 } from "@/lib/types";
@@ -106,4 +115,84 @@ export function askMemoryWithGemini(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query, limit }),
     });
+}
+export function getContextSessions(limit = 20): Promise<ContextSession[]> {
+    return request<ContextSession[]>(`/context/sessions?limit=${limit}`);
+}
+
+export function getCurrentContext(): Promise<ContextSession | null> {
+    return request<ContextSession | null>("/context/resume");
+}
+
+export function askContext(input: {
+    query: string;
+    project_id?: string;
+    goal_id?: string;
+    agent_name?: string;
+    limit?: number;
+}): Promise<ContextResult> {
+    return request<ContextResult>("/context/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+    });
+}
+
+export function rebuildContext(): Promise<{ sessions_rebuilt: number }> {
+    return request<{ sessions_rebuilt: number }>("/context/rebuild", { method: "POST" });
+}
+
+export function getProjects(): Promise<Project[]> {
+    return request<Project[]>("/context/projects");
+}
+
+export function getGoals(): Promise<Goal[]> {
+    return request<Goal[]>("/context/goals");
+}
+
+export function createGoal(title: string, description: string, project_id?: string): Promise<Goal> {
+    return request<Goal>("/context/goals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description, project_id: project_id ?? null }),
+    });
+}
+
+export function updateGoal(
+    goalId: string,
+    updates: { status?: string; description?: string },
+): Promise<Goal> {
+    return request<Goal>(`/context/goals/${goalId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+    });
+}
+
+export function getLearningGraph(): Promise<LearningGraph> {
+    return request<LearningGraph>("/context/learning");
+}
+
+export function getPrivacyLedger(limit = 100): Promise<PrivacyLedgerEntry[]> {
+    return request<PrivacyLedgerEntry[]>(`/context/privacy-ledger?limit=${limit}`);
+}
+
+export function previewLifecycle(): Promise<LifecyclePreview> {
+    return request<LifecyclePreview>("/context/lifecycle/preview");
+}
+
+export function runLifecycle(execute: boolean): Promise<LifecycleRunResult> {
+    return request<LifecycleRunResult>("/context/lifecycle/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ execute }),
+    });
+}
+
+export function reindexSemantic(): Promise<{ indexed_memories: number }> {
+    return request<{ indexed_memories: number }>("/context/reindex-semantic", { method: "POST" });
+}
+
+export function getSessionDetail(sessionId: string): Promise<SessionDetail> {
+    return request<SessionDetail>(`/context/sessions/${sessionId}`);
 }

@@ -38,3 +38,24 @@ class GlobalEraseResult(BaseModel):
     audit_logs_deleted: int = Field(ge=0)
     sources_disabled: int = Field(ge=0)
     vacuum_performed: bool
+
+
+# ---------------------------------------------------------
+# Context OS additions
+# ---------------------------------------------------------
+
+
+class DomainRuleUpsert(BaseModel):
+    source: Source
+    pattern: str = Field(min_length=1, max_length=300)
+    action: str = Field(default="deny", pattern="^(allow|deny)$")
+    enabled: bool = True
+
+
+class DomainRuleRead(BaseModel):
+    id: str
+    source: str
+    pattern: str
+    action: str
+    enabled: bool
+    created_at: datetime

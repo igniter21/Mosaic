@@ -146,9 +146,7 @@ def erase_all_local_memory(
             "The confirmation phrase is incorrect."
         )
 
-    raw_events_deleted = int(
-        db.scalar(select(func.count()).select_from(RawEvent)) or 0
-    )
+    raw_events_deleted = int(db.scalar(select(func.count()).select_from(RawEvent)) or 0)
     derived_memories_deleted = int(
         db.scalar(select(func.count()).select_from(DerivedMemory)) or 0
     )
@@ -158,9 +156,7 @@ def erase_all_local_memory(
     graph_links_deleted = int(
         db.scalar(select(func.count()).select_from(MemoryLink)) or 0
     )
-    audit_logs_deleted = int(
-        db.scalar(select(func.count()).select_from(AuditLog)) or 0
-    )
+    audit_logs_deleted = int(db.scalar(select(func.count()).select_from(AuditLog)) or 0)
 
     sources_disabled = 0
 

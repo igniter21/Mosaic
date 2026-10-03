@@ -71,7 +71,8 @@ def test_offline_document_tab_understands_and_stores_as_document_source(
         title="Local Saved Article",
         host="local-file",
         path="/C:/Users/rajri/Documents/article.html",
-        context_text="This is an offline article about local-first software architecture and privacy." * 2,
+        context_text="This is an offline article about local-first software architecture and privacy."
+        * 2,
         source="document",
     )
     expected = GeminiTabUnderstanding(
@@ -93,7 +94,9 @@ def test_offline_document_tab_understands_and_stores_as_document_source(
     assert event.payload["host"] == "local-file"
     assert event.payload["context_summary"] == expected.summary
 
-    memory = db.scalar(select(DerivedMemory).where(DerivedMemory.source == Source.DOCUMENT.value))
+    memory = db.scalar(
+        select(DerivedMemory).where(DerivedMemory.source == Source.DOCUMENT.value)
+    )
     assert memory is not None
     assert "Understood Local Saved Article:" in memory.summary
     assert "privacy" in memory.keywords
@@ -129,7 +132,11 @@ def test_pdf_endpoint_extracts_text_and_understands_document(
                     "source": "document",
                 },
                 files={
-                    "file": ("paper.pdf", io.BytesIO(MINIMAL_PDF_BYTES), "application/pdf")
+                    "file": (
+                        "paper.pdf",
+                        io.BytesIO(MINIMAL_PDF_BYTES),
+                        "application/pdf",
+                    )
                 },
             )
     finally:
@@ -141,7 +148,9 @@ def test_pdf_endpoint_extracts_text_and_understands_document(
     assert body["event"]["source"] == "document"
 
     # Verify event stored in DB
-    raw_event = db.scalar(select(RawEvent).where(RawEvent.source == Source.DOCUMENT.value))
+    raw_event = db.scalar(
+        select(RawEvent).where(RawEvent.source == Source.DOCUMENT.value)
+    )
     assert raw_event is not None
     assert "Artificial Intelligence" in raw_event.payload["context_excerpt"]
 

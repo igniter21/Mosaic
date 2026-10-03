@@ -29,7 +29,7 @@
 
 ## 🔍 Overview
 
-**Mosaic Memory** is a self-hosted, privacy-first system that records your digital activity from explicitly approved sources — browser pages, YouTube videos, LeetCode problems, VS Code sessions, and local documents. Every piece of collected metadata stays in **local SQLite storage**, is transformed into searchable derived memories with evidence-backed retrieval, and can be deleted at any time — individually, by scope, or entirely.
+**Mosaic Memory** is a self-hosted, privacy-first system that records your digital activity from explicitly approved sources — browser pages, YouTube videos, LeetCode problems, VS Code sessions, local documents, and Git history. Every piece of collected metadata stays in **local SQLite storage**, is transformed into searchable derived memories with evidence-backed retrieval, and can be deleted at any time — individually, by scope, or entirely.
 
 > **No cloud account. No telemetry. No data leaves your machine** unless you explicitly click one of the optional Gemini-powered features.
 
@@ -45,6 +45,7 @@
 | **LeetCode** | Problem slug, title | Code submissions, test results |
 | **VS Code** | Workspace-relative filename, language ID, workspace name | File content, selections, diagnostics, absolute paths |
 | **Documents** | Filename, extension, byte size, modified timestamp | File path, document text/content |
+| **Git** | Commit message, branch, repository name, changed filenames | Source-code contents, diffs, credentials |
 
 ### 🧠 Derived Memories & Local Retrieval
 - **Deterministic summaries** — source-aware, e.g. *"Watched Python sorting tutorial"*
@@ -52,6 +53,7 @@
 - **Keyword extraction & topic graph** — links related memories by shared keywords
 - **Evidence-backed Ask** — every answer cites the raw events that support it
 - **Time-aware queries** — supports *"today"*, *"yesterday"*, *"last week"*, *"last seven days"*
+- **Context OS** — reconstructs sessions, connects project and goal signals, and provides local-only resume context
 
 ### 🔐 Privacy Controls
 - Per-source enable/disable — events are rejected for disabled sources
@@ -82,14 +84,14 @@ mosaic-memory/
 │   └── pyproject.toml
 ├── frontend/              # Next.js 16 + React 19 + Tailwind CSS 4
 │   ├── src/
-│   │   ├── app/           # Pages: Dashboard, Ask, Timeline, Sources, Privacy
+│   │   ├── app/           # Pages: Dashboard, Ask, Context, Timeline, Sources, Privacy
 │   │   ├── components/    # Shared UI (navigation, icons, source marks, erase dialog)
 │   │   └── lib/           # API client & TypeScript types
 │   └── Dockerfile
 ├── extensions/
 │   ├── browser/           # Chrome MV3 extension (browser, YouTube, LeetCode collection)
 │   └── vscode/            # VS Code extension (editor focus & save events)
-├── scripts/               # CLI document metadata collector
+├── scripts/               # Explicit document and Git metadata collectors
 ├── contracts/             # JSON Schema for the event contract
 ├── docs/                  # Collector boundaries, retrieval details, ADRs
 ├── compose.yaml           # One-command Docker Compose deployment
@@ -147,7 +149,7 @@ docker compose down --volumes
 
 ```bash
 cd backend
-uv sync --dev
+uv sync --dev --extra context
 uv run uvicorn mosaic_memory_api.main:app --app-dir src --reload
 ```
 
@@ -205,6 +207,14 @@ python scripts/collect_documents.py ~/Documents/notes --recursive
 
 Supported formats: `.doc`, `.docx`, `.md`, `.odt`, `.pdf`, `.pptx`, `.rtf`, `.txt`, `.xlsx`
 
+### Git metadata (CLI)
+
+Enable **Git** on the Data Sources page, then explicitly choose a repository to import. The collector sends commit metadata only; it never reads file contents or diffs.
+
+```bash
+python scripts/collect_git.py /path/to/a/repository
+```
+
 ---
 
 ## 🔒 Privacy Model
@@ -241,7 +251,10 @@ All endpoints are prefixed with `/api/v1`.
 | `POST` | `/memory/ask` | Ask your memory (local retrieval) |
 | `POST` | `/memory/ask-with-gemini` | Ask with Gemini (opt-in cloud) |
 | `POST` | `/privacy/erase-all` | Full local erase with confirmation |
-| `POST` | `/tab-context/understand` | Understand a browser tab via Gemini |
+| `POST` | `/context/tab` | Understand a browser tab via Gemini |
+| `GET` / `POST` | `/context/sessions`, `/context/ask` | Rebuild and query local activity context |
+| `GET` / `POST` | `/context/projects`, `/context/goals` | Inspect project signals and manage goals |
+| `GET` / `POST` | `/privacy/domain-rules` | Manage local host allow/deny rules |
 
 The event contract is defined in [`contracts/event.schema.json`](contracts/event.schema.json).
 

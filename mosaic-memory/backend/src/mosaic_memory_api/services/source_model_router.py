@@ -89,9 +89,7 @@ def _safe_scalar_text(value: Any) -> str:
     if isinstance(value, (str, int, float, bool)):
         return str(value)
     if isinstance(value, list):
-        return " ".join(
-            item.strip() for item in value[:16] if isinstance(item, str)
-        )
+        return " ".join(item.strip() for item in value[:16] if isinstance(item, str))
     return ""
 
 
@@ -141,7 +139,12 @@ SOURCE_MODELS: dict[Source, SourceModel] = {
         model_label="Code workspace model",
         modality="code metadata",
         default_action="Worked in",
-        payload_keys=("relative_path", "language_id", "file_extension", "workspace_name"),
+        payload_keys=(
+            "relative_path",
+            "language_id",
+            "file_extension",
+            "workspace_name",
+        ),
         action_by_event_type=(
             ("document_saved", "Saved"),
             ("editor_focused", "Worked in"),
@@ -164,6 +167,21 @@ SOURCE_MODELS: dict[Source, SourceModel] = {
             "context_excerpt",
         ),
         context_summary_key="context_summary",
+    ),
+    Source.GIT: SourceModel(
+        source=Source.GIT,
+        model_id="local-git-metadata-v1",
+        model_label="Git activity model",
+        modality="git metadata",
+        default_action="Changed",
+        payload_keys=(
+            "repository_name",
+            "branch",
+            "commit_hash",
+            "message",
+            "changed_files",
+            "repository",
+        ),
     ),
 }
 

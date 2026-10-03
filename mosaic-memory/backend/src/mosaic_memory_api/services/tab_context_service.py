@@ -63,4 +63,3 @@ def understand_and_store_tab(
         retention_class=RetentionClass.SHORT_TERM,
     )
     return create_event(db, event), understanding
-

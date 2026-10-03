@@ -12,10 +12,15 @@ from sqlalchemy.orm import Session
 from mosaic_memory_api.db.session import get_db
 from mosaic_memory_api.domain.events import EventRead
 from mosaic_memory_api.domain.tab_context import TabContextRequest, TabContextResponse
+from mosaic_memory_api.services.domain_policy_service import (
+    PrivacyPolicyDeniedError,
+    enforce_domain_policy,
+)
 from mosaic_memory_api.services.gemini_service import (
     GeminiNotConfiguredError,
     GeminiRequestError,
 )
+from mosaic_memory_api.services.policy_service import record_privacy_action
 from mosaic_memory_api.services.privacy_service import SourceDisabledError
 from mosaic_memory_api.services.tab_context_service import understand_and_store_tab
 
@@ -52,14 +57,19 @@ def extract_text_from_local_file(file_path: Path) -> tuple[str, str | None]:
                 self.in_title = False
                 self.title = ""
 
-            def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+            def handle_starttag(
+                self, tag: str, attrs: list[tuple[str, str | None]]
+            ) -> None:
                 if tag in ("script", "style", "noscript", "svg"):
                     self.skip = True
                 elif tag == "title":
                     self.in_title = True
                 elif tag == "meta":
                     attr_dict = {k.lower(): v for k, v in attrs if v is not None}
-                    if attr_dict.get("name") == "description" and "content" in attr_dict:
+                    if (
+                        attr_dict.get("name") == "description"
+                        and "content" in attr_dict
+                    ):
                         nonlocal description
                         description = attr_dict["content"].strip()[:500]
 
@@ -86,12 +96,16 @@ def extract_text_from_local_file(file_path: Path) -> tuple[str, str | None]:
     return " ".join(raw_text.split())[:6_000], None
 
 
-@router.post("/tab", response_model=TabContextResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/tab", response_model=TabContextResponse, status_code=status.HTTP_201_CREATED
+)
 def understand_current_tab(
     request: TabContextRequest,
     db: Session = Depends(get_db),
 ) -> TabContextResponse:
-    if (request.host == "local-file" or request.source == "document") and len(request.context_text.strip()) < 30:
+    if (request.host == "local-file" or request.source == "document") and len(
+        request.context_text.strip()
+    ) < 30:
         local_path = resolve_local_file_path(request.path)
         if local_path:
             extracted, desc = extract_text_from_local_file(local_path)
@@ -111,8 +125,9 @@ def understand_current_tab(
         )
 
     try:
+        enforce_domain_policy(db, request.source, request.host)
         event, understanding = understand_and_store_tab(db, request)
-    except SourceDisabledError as error:
+    except (SourceDisabledError, PrivacyPolicyDeniedError) as error:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(error),
@@ -128,6 +143,16 @@ def understand_current_tab(
             detail=str(error),
         ) from error
 
+    record_privacy_action(
+        db,
+        direction="external",
+        provider="gemini",
+        action="understand_tab",
+        source=request.source,
+        bytes_count=len(request.context_text.encode("utf-8")),
+        reason="explicit user-triggered tab understanding",
+        metadata={"host": request.host, "path": request.path},
+    )
     return TabContextResponse(
         event=EventRead.model_validate(event),
         model_id=understanding.model_id,
@@ -136,7 +161,9 @@ def understand_current_tab(
     )
 
 
-@router.post("/pdf", response_model=TabContextResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/pdf", response_model=TabContextResponse, status_code=status.HTTP_201_CREATED
+)
 async def understand_pdf_document(
     file: UploadFile | None = File(default=None),
     title: str = Form(default="PDF Document"),
@@ -222,8 +249,9 @@ async def understand_pdf_document(
     )
 
     try:
+        enforce_domain_policy(db, tab_request.source, tab_request.host)
         event, understanding = understand_and_store_tab(db, tab_request)
-    except SourceDisabledError as error:
+    except (SourceDisabledError, PrivacyPolicyDeniedError) as error:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(error),
@@ -239,10 +267,19 @@ async def understand_pdf_document(
             detail=str(error),
         ) from error
 
+    record_privacy_action(
+        db,
+        direction="external",
+        provider="gemini",
+        action="understand_pdf",
+        source=tab_request.source,
+        bytes_count=len(context_text.encode("utf-8")),
+        reason="explicit user-triggered PDF understanding",
+        metadata={"host": tab_request.host, "path": tab_request.path},
+    )
     return TabContextResponse(
         event=EventRead.model_validate(event),
         model_id=understanding.model_id,
         summary=understanding.summary,
         topics=understanding.topics,
     )
-

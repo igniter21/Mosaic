@@ -11,6 +11,7 @@ const sourceAppearance: Record<
     leetcode: { label: "LeetCode", icon: "code", className: "bg-amber-50 text-amber-700 ring-amber-100" },
     vscode: { label: "VS Code", icon: "bolt", className: "bg-indigo-50 text-indigo-700 ring-indigo-100" },
     document: { label: "Document", icon: "file", className: "bg-emerald-50 text-emerald-700 ring-emerald-100" },
+    git: { label: "Git", icon: "code", className: "bg-slate-50 text-slate-700 ring-slate-100" },
 };
 
 interface SourceMarkProps {

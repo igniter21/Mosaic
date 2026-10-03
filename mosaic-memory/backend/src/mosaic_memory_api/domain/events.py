@@ -12,6 +12,7 @@ class Source(str, Enum):
     LEETCODE = "leetcode"
     VSCODE = "vscode"
     DOCUMENT = "document"
+    GIT = "git"
 
 
 class PrivacyLevel(str, Enum):
@@ -29,9 +30,7 @@ class EventCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     event_id: UUID = Field(default_factory=uuid4)
-    occurred_at: datetime = Field(
-        default_factory=lambda: datetime.now(UTC)
-    )
+    occurred_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     source: Source
     event_type: str = Field(min_length=2, max_length=100)
     title: str | None = Field(default=None, max_length=500)
@@ -51,3 +50,5 @@ class EventRead(BaseModel):
     payload: dict[str, Any]
     privacy_level: PrivacyLevel
     retention_class: RetentionClass
+    visit_count: int = 1
+    first_seen_at: datetime | None = None

@@ -29,6 +29,10 @@ const sourceDetails: Record<Source, { description: string; collects: string }> =
         description: "Index the document metadata you explicitly choose to collect.",
         collects: "Name, type, size, and modified time",
     },
+    git: {
+        description: "Import commit activity from a repository you explicitly choose.",
+        collects: "Commit message, branch, and changed filenames",
+    },
 };
 
 export default function SourcesPage() {
@@ -148,18 +152,18 @@ export default function SourcesPage() {
                                     </button>
                                 </div>
 
-                                    <p className="mt-5 text-sm leading-6 text-[#6f7075]">
-                                        {details.description}
+                                <p className="mt-5 text-sm leading-6 text-[#6f7075]">
+                                    {details.description}
+                                </p>
+                                <div className="mt-4 rounded-xl bg-[#f7f6ff] px-3 py-2.5">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8178c8]">
+                                        Processing route
                                     </p>
-                                    <div className="mt-4 rounded-xl bg-[#f7f6ff] px-3 py-2.5">
-                                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8178c8]">
-                                            Processing route
-                                        </p>
-                                        <p className="mt-1 text-xs font-medium text-[#514b88]">
-                                            {setting.model_label} · {setting.modality}
-                                        </p>
-                                    </div>
-                                    <div className="mt-5 border-t border-[#f0f0ed] pt-4">
+                                    <p className="mt-1 text-xs font-medium text-[#514b88]">
+                                        {setting.model_label} · {setting.modality}
+                                    </p>
+                                </div>
+                                <div className="mt-5 border-t border-[#f0f0ed] pt-4">
                                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#a0a0a4]">
                                         What it collects
                                     </p>
