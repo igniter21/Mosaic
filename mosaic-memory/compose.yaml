@@ -3,6 +3,9 @@ services:
     build:
       context: ./backend
     environment:
+      MOSAIC_SEMANTIC_MODEL: ${MOSAIC_SEMANTIC_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
+      MOSAIC_SEMANTIC_DEVICE: ${MOSAIC_SEMANTIC_DEVICE:-cpu}
+      MOSAIC_AUTO_SEMANTIC_INDEX: ${MOSAIC_AUTO_SEMANTIC_INDEX:-true}
       MOSAIC_DATA_DIR: /data
       MOSAIC_FRONTEND_ORIGIN: http://localhost:3000
       MOSAIC_COLLECTOR_ORIGINS: ${MOSAIC_COLLECTOR_ORIGINS:-}

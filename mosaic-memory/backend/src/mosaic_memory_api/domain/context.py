@@ -160,3 +160,27 @@ class PrivacyLedgerRead(BaseModel):
     bytes_count: int
     reason: str
     metadata: dict[str, Any]
+
+class ResumeContextRead(BaseModel):
+    title: str
+    summary: str
+
+    session: SessionRead | None = None
+    project: ProjectRead | None = None
+    goals: list[GoalRead] = Field(
+        default_factory=list
+    )
+
+    memories: list[dict[str, Any]] = Field(
+        default_factory=list
+    )
+
+    suggested_next_steps: list[str] = Field(
+        default_factory=list
+    )
+
+    evidence_receipt: dict[str, Any] = Field(
+        default_factory=dict
+    )
+
+    generated_at: datetime

@@ -32,9 +32,13 @@ from mosaic_memory_api.domain.events import EventRead, Source
 from mosaic_memory_api.services.memory_service import (
     evidence_for_memory,
     links_for_memory,
+    normalized_terms,
+    query_time_window,
     rank_memories,
 )
-from mosaic_memory_api.services.semantic_index import semantic_scores
+from mosaic_memory_api.services.semantic_index import (
+    semantic_candidate_scores,
+)
 
 SESSION_GAP = timedelta(minutes=30)
 PROJECT_KEYS = ("repo_name", "repository", "git_remote", "workspace_name", "project")
@@ -114,17 +118,116 @@ def _first_string(event: RawEvent | None, keys: tuple[str, ...]) -> str | None:
     return None
 
 
-def _session_summary(events: list[RawEvent]) -> str:
+def _session_summary(
+    events: list[RawEvent],
+) -> str:
     titles = [
-        event.title or event.event_type.replace("_", " ")
+        event.title
+        or event.event_type.replace("_", " ")
         for event in events
         if event.title or event.event_type
     ]
-    sources = list(dict.fromkeys(event.source for event in events))
-    top_titles = list(dict.fromkeys(titles))[:4]
-    source_text = ", ".join(sources)
-    title_text = "; ".join(top_titles)
-    return f"{source_text}: {title_text}"[:1000]
+
+    sources = list(
+        dict.fromkeys(
+            event.source
+            for event in events
+        )
+    )
+
+    stop_words = {
+        "the",
+        "and",
+        "with",
+        "from",
+        "this",
+        "that",
+        "into",
+        "your",
+        "have",
+        "was",
+        "were",
+        "open",
+        "opened",
+        "page",
+        "file",
+        "document",
+        "browser",
+        "youtube",
+        "vscode",
+        "leetcode",
+    }
+
+    terms = Counter()
+
+    for event in events:
+        raw_text = " ".join(
+            [
+                event.title or "",
+                str(
+                    event.payload.get(
+                        "description",
+                        "",
+                    )
+                ),
+            ]
+        )
+
+        for token in re.findall(
+            r"[a-zA-Z][a-zA-Z0-9_-]{2,}",
+            raw_text.lower(),
+        ):
+            if token in stop_words:
+                continue
+
+            terms[token] += 1
+
+        context_topics = event.payload.get(
+            "context_topics"
+        )
+
+        if isinstance(
+            context_topics,
+            list,
+        ):
+            for topic in context_topics:
+                if not isinstance(
+                    topic,
+                    str,
+                ):
+                    continue
+
+                cleaned = topic.strip().lower()
+
+                if (
+                    cleaned
+                    and cleaned not in stop_words
+                ):
+                    terms[cleaned] += 2
+
+    topics = [
+        topic
+        for topic, _ in terms.most_common(5)
+    ]
+
+    source_text = ", ".join(
+        sources
+    )
+
+    if topics:
+        return (
+            f"{source_text}: "
+            f"{', '.join(topics)}"
+        )[:1000]
+
+    fallback_titles = list(
+        dict.fromkeys(titles)
+    )[:4]
+
+    return (
+        f"{source_text}: "
+        f"{'; '.join(fallback_titles)}"
+    )[:1000]
 
 
 def _focus_score(events: list[RawEvent]) -> float:
@@ -393,7 +496,18 @@ def context_search(
 ) -> tuple[list[tuple[DerivedMemory, float]], dict[str, Any]]:
     now = datetime.now(UTC)
     intent = _infer_task_intent(query)
-    candidates = rank_memories(db, query=query, limit=max(40, limit * 5), now=now)
+    lexical_candidates = rank_memories(
+        db,
+        query=query,
+        limit=max(40, limit * 5),
+        now=now,
+    )
+
+    base_scores = {
+        memory.id: score
+        for memory, score in lexical_candidates
+    }
+
     allowed_sources = allowed_sources or set()
     denied_sources = denied_sources or set()
 
@@ -423,10 +537,57 @@ def context_search(
             ).all()
         )
 
+    semantic_by_id = semantic_candidate_scores(
+        db,
+        query,
+        limit=max(80, limit * 10),
+    )
+
+    time_window = query_time_window(
+        query,
+        now,
+    )
+
+    # For pure date questions such as "today", "yesterday",
+    # semantic similarity should not override the date filter.
+    if (
+        time_window is not None
+        and not normalized_terms(query)
+    ):
+        semantic_by_id = {}
+
+    candidate_ids = list(
+        dict.fromkeys(
+            [
+                memory.id
+                for memory, _ in lexical_candidates
+            ]
+            + list(semantic_by_id.keys())
+        )
+    )
+
+    candidate_memories = list(
+        db.scalars(
+            select(DerivedMemory).where(
+                DerivedMemory.id.in_(candidate_ids)
+            )
+        ).all()
+    )
+
     reranked: list[tuple[DerivedMemory, float]] = []
     filtered = 0
-    semantic_by_id = semantic_scores(db, query, [memory.id for memory, _ in candidates])
-    for memory, base_score in candidates:
+    for memory in candidate_memories:
+        base_score = base_scores.get(memory.id, 0.0)
+        if time_window is not None:
+            occurred_at = _as_utc(
+                memory.occurred_at
+            )
+            if not (
+                time_window[0]
+                <= occurred_at
+                < time_window[1]
+            ):
+                continue
         evidence = evidence_for_memory(db, memory.id)
         if not evidence:
             filtered += 1
@@ -458,17 +619,26 @@ def context_search(
         if goal_id and memory.id in goal_memory_ids:
             score += 0.20
         score += intent["source_boosts"].get(memory.source, 0.0)
-        reranked.append((memory, min(1.0, score)))
+        if score > 0:
+            reranked.append(
+                (
+                    memory,
+                    min(1.0, score),
+                )
+            )
+
     reranked.sort(
         key=lambda item: (item[1], _as_utc(item[0].occurred_at)), reverse=True
     )
+
     receipt = {
-        "candidate_count": len(candidates),
+        "candidate_count": len(candidate_ids),
         "filtered_count": filtered,
         "project_boost": bool(project_id),
         "goal_boost": bool(goal_id),
         "recency_boost": True,
         "semantic_rerank": bool(semantic_by_id),
+        "semantic_retrieval": bool(semantic_by_id),
         "policy_filtered": True,
         "allowed_project_count": len(allowed_projects or set()),
         "task_intent": {

@@ -17,6 +17,7 @@ from mosaic_memory_api.domain.context import (
     ContextPolicyRead,
     ContextPolicyUpsert,
     ContextResult,
+    ResumeContextRead,
     GoalCreate,
     GoalRead,
     GoalUpdate,
@@ -29,6 +30,9 @@ from mosaic_memory_api.domain.context import (
     ProjectRead,
     SessionDetailRead,
     SessionRead,
+)
+from mosaic_memory_api.services.resume_service import (
+build_resume_context,
 )
 from mosaic_memory_api.services.capsule_service import create_capsule, get_capsule
 from mosaic_memory_api.services.context_engine import (
@@ -276,3 +280,16 @@ def privacy_ledger(
         )
         for row in rows
     ]
+
+@router.get(
+    "/resume-summary",
+    response_model=ResumeContextRead,
+)
+def resume_summary(
+    db: Session = Depends(get_db),
+) -> ResumeContextRead:
+    return build_resume_context(
+        db,
+        agent_name="ui",
+        limit=8,
+    )

@@ -106,8 +106,7 @@ def test_semantic_scoring_skips_model_loading_without_an_index(
         )
     )
     db.commit()
-    monkeypatch.setattr(semantic_index, "semantic_available", lambda: True)
-    monkeypatch.setattr(semantic_index, "semantic_model_loaded", lambda: False)
+    monkeypatch.setattr(semantic_index, "semantic_available", lambda: False)
     monkeypatch.setattr(
         semantic_index,
         "embed",
@@ -116,6 +115,7 @@ def test_semantic_scoring_skips_model_loading_without_an_index(
 
     assert semantic_index.semantic_scores(db, "retrieval", ["mem-semantic-1"]) == {}
     db.close()
+
 
 
 def test_semantic_scoring_computes_scores_when_model_is_loaded(
@@ -136,9 +136,24 @@ def test_semantic_scoring_computes_scores_when_model_is_loaded(
     )
     db.commit()
     monkeypatch.setattr(semantic_index, "semantic_available", lambda: True)
-    monkeypatch.setattr(semantic_index, "semantic_model_loaded", lambda: True)
     monkeypatch.setattr(semantic_index, "embed", lambda _texts: [[0.6, 0.8]])
 
     scores = semantic_index.semantic_scores(db, "retrieval", ["mem-semantic-1"])
     assert scores == pytest.approx({"mem-semantic-1": 1.0})
+    db.close()
+
+
+def test_build_resume_context_reconstructs_summary() -> None:
+    from mosaic_memory_api.services.resume_service import build_resume_context
+    engine = create_engine(
+        "sqlite:///:memory:", connect_args={"check_same_thread": False}
+    )
+    Base.metadata.create_all(bind=engine)
+    db = Session(engine)
+
+    resume = build_resume_context(db)
+    assert resume.title is not None
+    assert resume.summary is not None
+    assert isinstance(resume.suggested_next_steps, list)
+    assert isinstance(resume.memories, list)
     db.close()

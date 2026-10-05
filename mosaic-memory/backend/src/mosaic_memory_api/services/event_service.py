@@ -12,6 +12,9 @@ from datetime import timedelta
 
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
+from mosaic_memory_api.services.semantic_index import (
+    ensure_semantic_embedding,
+)
 
 from mosaic_memory_api.db.models import RawEvent
 from mosaic_memory_api.domain.events import EventCreate, Source
@@ -103,8 +106,22 @@ def create_event(db: Session, event: EventCreate) -> RawEvent:
     # Exact-ID idempotency guard (extension re-sends)
     existing_event = db.get(RawEvent, str(event.event_id))
     if existing_event:
-        memory = build_memory_for_event(db, existing_event)
-        sync_incremental_context(db, existing_event, memory)
+        memory = build_memory_for_event(
+            db,
+            existing_event,
+        )
+
+        ensure_semantic_embedding(
+            db,
+            memory,
+        )
+
+        sync_incremental_context(
+            db,
+            existing_event,
+            memory,
+        )
+
         db.commit()
         return existing_event
 
@@ -116,8 +133,21 @@ def create_event(db: Session, event: EventCreate) -> RawEvent:
         duplicate.occurred_at = event.occurred_at
         duplicate.visit_count = (duplicate.visit_count or 1) + 1
         db.flush()
-        memory = build_memory_for_event(db, duplicate)
-        sync_incremental_context(db, duplicate, memory)
+        memory = build_memory_for_event(
+            db,
+            duplicate,
+        )
+
+        ensure_semantic_embedding(
+            db,
+            memory,
+        )
+
+        sync_incremental_context(
+            db,
+            duplicate,
+            memory,
+        )
         db.commit()
         return duplicate
 
@@ -136,8 +166,21 @@ def create_event(db: Session, event: EventCreate) -> RawEvent:
     )
     db.add(raw_event)
     db.flush()
-    memory = build_memory_for_event(db, raw_event)
-    sync_incremental_context(db, raw_event, memory)
+    memory = build_memory_for_event(
+        db,
+        raw_event,
+    )
+
+    ensure_semantic_embedding(
+        db,
+        memory,
+    )
+
+    sync_incremental_context(
+        db,
+        raw_event,
+        memory,
+    )
     db.commit()
     db.refresh(raw_event)
     return raw_event

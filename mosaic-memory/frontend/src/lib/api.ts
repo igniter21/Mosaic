@@ -14,6 +14,7 @@ import type {
     SessionDetail,
     Source,
     SourceSetting,
+    ResumeContext,
 } from "@/lib/types";
 
 const API_BASE_URL =
@@ -195,4 +196,10 @@ export function reindexSemantic(): Promise<{ indexed_memories: number }> {
 
 export function getSessionDetail(sessionId: string): Promise<SessionDetail> {
     return request<SessionDetail>(`/context/sessions/${sessionId}`);
+}
+
+export function getResumeContext(): Promise<ResumeContext> {
+    return request<ResumeContext>(
+        "/context/resume-summary",
+    );
 }

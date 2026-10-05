@@ -9,7 +9,7 @@ WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src ./src
 
-RUN pip install --no-cache-dir . \
+RUN pip install --no-cache-dir ".[context]" \
     && useradd --create-home --uid 10001 mosaic \
     && mkdir -p /data \
     && chown -R 10001:10001 /data

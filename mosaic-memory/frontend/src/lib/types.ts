@@ -167,3 +167,15 @@ export interface LifecycleRunResult {
 export interface SessionDetail extends ContextSession {
     events: MemoryEvent[];
 }
+
+export interface ResumeContext {
+    title: string;
+    summary: string;
+    session: ContextSession | null;
+    project: Project | null;
+    goals: Goal[];
+    memories: DerivedMemory[];
+    suggested_next_steps: string[];
+    evidence_receipt: Record<string, unknown>;
+    generated_at: string;
+}

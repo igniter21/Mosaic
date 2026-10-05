@@ -10,6 +10,7 @@ import {
     createGoal,
     getContextSessions,
     getCurrentContext,
+    getResumeContext,
     getSessionDetail,
     getGoals,
     getLearningGraph,
@@ -28,6 +29,7 @@ import type {
     Project,
     SessionDetail,
     Source,
+    ResumeContext,
 } from "@/lib/types";
 
 type Notice = {
@@ -83,6 +85,7 @@ function formatBytes(bytes: number) {
 
 export default function ContextPage() {
     const [current, setCurrent] = useState<ContextSession | null>(null);
+    const [resume, setResume] = useState<ResumeContext | null>(null);
     const [sessions, setSessions] = useState<ContextSession[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [goals, setGoals] = useState<Goal[]>([]);
@@ -106,16 +109,26 @@ export default function ContextPage() {
     async function load(showFeedback = false) {
         if (showFeedback) setIsRefreshing(true);
         try {
-            const [active, sessionRows, projectRows, goalRows, learningRow, ledgerRows] =
-                await Promise.all([
-                    getCurrentContext(),
-                    getContextSessions(),
-                    getProjects(),
-                    getGoals(),
-                    getLearningGraph(),
-                    getPrivacyLedger(),
-                ]);
+            const [
+                active,
+                resumeRow,
+                sessionRows,
+                projectRows,
+                goalRows,
+                learningRow,
+                ledgerRows,
+            ] = await Promise.all([
+                getCurrentContext(),
+                getResumeContext(),
+                getContextSessions(),
+                getProjects(),
+                getGoals(),
+                getLearningGraph(),
+                getPrivacyLedger(),
+            ]);
+
             setCurrent(active);
+            setResume(resumeRow);
             setSessions(sessionRows);
             setProjects(projectRows);
             setGoals(goalRows);
@@ -341,9 +354,8 @@ export default function ContextPage() {
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                     <div className="inline-flex items-center gap-1.5 rounded-full border border-[#e8e8e4] bg-white px-3 py-1 text-[#4c4c51]">
                         <span
-                            className={`h-2 w-2 rounded-full ${
-                                current ? "bg-emerald-500 ring-2 ring-emerald-200 animate-pulse" : "bg-slate-300"
-                            }`}
+                            className={`h-2 w-2 rounded-full ${current ? "bg-emerald-500 ring-2 ring-emerald-200 animate-pulse" : "bg-slate-300"
+                                }`}
                         />
                         <span className="font-medium">{current ? "Session Active" : "Idle"}</span>
                     </div>
@@ -366,24 +378,22 @@ export default function ContextPage() {
             {notice && (
                 <div
                     aria-live="polite"
-                    className={`mt-4 flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm shadow-sm transition-all ${
-                        notice.tone === "error"
-                            ? "border-red-200 bg-red-50 text-red-800"
-                            : notice.tone === "success"
-                              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                              : "border-[#dfdcff] bg-[#f7f6ff] text-[#5d5794]"
-                    }`}
+                    className={`mt-4 flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm shadow-sm transition-all ${notice.tone === "error"
+                        ? "border-red-200 bg-red-50 text-red-800"
+                        : notice.tone === "success"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                            : "border-[#dfdcff] bg-[#f7f6ff] text-[#5d5794]"
+                        }`}
                     role={notice.tone === "error" ? "alert" : "status"}
                 >
                     <div className="flex items-center gap-2.5">
                         <Icon
-                            className={`h-4 w-4 shrink-0 ${
-                                notice.tone === "error"
-                                    ? "text-red-600"
-                                    : notice.tone === "success"
-                                      ? "text-emerald-600"
-                                      : "text-[#6558f5]"
-                            }`}
+                            className={`h-4 w-4 shrink-0 ${notice.tone === "error"
+                                ? "text-red-600"
+                                : notice.tone === "success"
+                                    ? "text-emerald-600"
+                                    : "text-[#6558f5]"
+                                }`}
                             name={notice.tone === "success" ? "check" : notice.tone === "error" ? "shield" : "sparkles"}
                         />
                         <span>{notice.message}</span>
@@ -460,9 +470,8 @@ export default function ContextPage() {
                             <span className="sr-only">Limit to a project</span>
                             <div className="relative w-full">
                                 <select
-                                    className={`h-10 w-full appearance-none rounded-xl border bg-white pr-8 pl-3 text-xs text-[#4c4c51] outline-none transition focus:border-[#a8a1ff] ${
-                                        selectedProjectId ? "border-[#a8a1ff] bg-[#fcfbff] font-semibold text-[#5146d7]" : "border-[#e8e8e4]"
-                                    }`}
+                                    className={`h-10 w-full appearance-none rounded-xl border bg-white pr-8 pl-3 text-xs text-[#4c4c51] outline-none transition focus:border-[#a8a1ff] ${selectedProjectId ? "border-[#a8a1ff] bg-[#fcfbff] font-semibold text-[#5146d7]" : "border-[#e8e8e4]"
+                                        }`}
                                     onChange={(event) => setSelectedProjectId(event.target.value)}
                                     value={selectedProjectId}
                                 >
@@ -480,9 +489,8 @@ export default function ContextPage() {
                             <span className="sr-only">Limit to a goal</span>
                             <div className="relative w-full">
                                 <select
-                                    className={`h-10 w-full appearance-none rounded-xl border bg-white pr-8 pl-3 text-xs text-[#4c4c51] outline-none transition focus:border-[#a8a1ff] ${
-                                        selectedGoalId ? "border-[#a8a1ff] bg-[#fcfbff] font-semibold text-[#5146d7]" : "border-[#e8e8e4]"
-                                    }`}
+                                    className={`h-10 w-full appearance-none rounded-xl border bg-white pr-8 pl-3 text-xs text-[#4c4c51] outline-none transition focus:border-[#a8a1ff] ${selectedGoalId ? "border-[#a8a1ff] bg-[#fcfbff] font-semibold text-[#5146d7]" : "border-[#e8e8e4]"
+                                        }`}
                                     onChange={(event) => setSelectedGoalId(event.target.value)}
                                     value={selectedGoalId}
                                 >
@@ -679,11 +687,10 @@ export default function ContextPage() {
 
                         return (
                             <div
-                                className={`rounded-xl border transition-all ${
-                                    isSelected
-                                        ? "border-[#a8a1ff] bg-[#fbfaff] shadow-sm"
-                                        : "border-[#efefec] bg-white hover:border-[#dfdcff] hover:bg-[#fafaff]"
-                                }`}
+                                className={`rounded-xl border transition-all ${isSelected
+                                    ? "border-[#a8a1ff] bg-[#fbfaff] shadow-sm"
+                                    : "border-[#efefec] bg-white hover:border-[#dfdcff] hover:bg-[#fafaff]"
+                                    }`}
                                 key={session.id}
                             >
                                 <button
@@ -715,13 +722,12 @@ export default function ContextPage() {
                                     </div>
                                     <div className="flex shrink-0 items-center gap-3">
                                         <span
-                                            className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                                                focusPercent >= 70
-                                                    ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                                                    : focusPercent >= 40
-                                                      ? "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200"
-                                                      : "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
-                                            }`}
+                                            className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${focusPercent >= 70
+                                                ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                                                : focusPercent >= 40
+                                                    ? "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200"
+                                                    : "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
+                                                }`}
                                         >
                                             {focusPercent}% focus
                                         </span>
@@ -821,37 +827,113 @@ export default function ContextPage() {
                             </span>
                         </div>
 
-                        {current ? (
+                        {current || resume ? (
                             <div className="mt-5 space-y-3">
-                                <div className="rounded-xl border border-[#e9e7ff] bg-[#fafaff] p-4">
-                                    <div className="flex items-center gap-2">
-                                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                                        <p className="text-xs font-bold uppercase tracking-wider text-[#5549db]">Live Session</p>
-                                    </div>
-                                    <p className="mt-2 text-sm font-semibold text-[#303136]">{current.summary}</p>
-                                    <p className="mt-1.5 text-xs text-[#7d7d84]">
-                                        {formatDate(current.started_at)} → {formatDate(current.ended_at)} · {formatDuration(current.started_at, current.ended_at)} · {current.event_count} events
-                                    </p>
-                                    <div className="mt-3 flex items-center gap-2">
-                                        <div className="h-2 flex-1 rounded-full bg-[#e8e7fa] overflow-hidden">
-                                            <div
-                                                className="h-full rounded-full bg-[#6558f5]"
-                                                style={{ width: `${Math.round(current.focus_score * 100)}%` }}
-                                            />
+                                {current && (
+                                    <div className="rounded-xl border border-[#e9e7ff] bg-[#fafaff] p-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                                            <p className="text-xs font-bold uppercase tracking-wider text-[#5549db]">
+                                                Latest Work Session
+                                            </p>
                                         </div>
-                                        <span className="text-[11px] font-bold text-[#5549db]">
-                                            {Math.round(current.focus_score * 100)}% focus
-                                        </span>
+                                        <p className="mt-2 text-sm font-semibold text-[#303136]">{current.summary}</p>
+                                        <p className="mt-1.5 text-xs text-[#7d7d84]">
+                                            {formatDate(current.started_at)} → {formatDate(current.ended_at)} · {formatDuration(current.started_at, current.ended_at)} · {current.event_count} events
+                                        </p>
+                                        <div className="mt-3 flex items-center gap-2">
+                                            <div className="h-2 flex-1 rounded-full bg-[#e8e7fa] overflow-hidden">
+                                                <div
+                                                    className="h-full rounded-full bg-[#6558f5]"
+                                                    style={{ width: `${Math.round(current.focus_score * 100)}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-[11px] font-bold text-[#5549db]">
+                                                {Math.round(current.focus_score * 100)}% focus
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
-                                {current.goal_hint && (
+                                {current?.goal_hint && (
                                     <div className="flex items-start gap-2.5 rounded-xl bg-[#f7f7f4] p-3.5 text-xs text-[#525257]">
                                         <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#6558f5]" name="target" />
                                         <div>
                                             <span className="font-semibold text-[#303136]">Inferred goal:</span>{" "}
                                             <span>{current.goal_hint}</span>
                                         </div>
+                                    </div>
+                                )}
+
+                                {resume && (
+                                    <div className="space-y-3">
+                                        <div className="rounded-xl border border-[#e9e7ff] bg-[#fafaff] p-4">
+                                            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#6558f5]">
+                                                Resume focus
+                                            </p>
+                                            <p className="mt-1.5 text-sm font-semibold text-[#303136]">
+                                                {resume.title}
+                                            </p>
+                                            <p className="mt-1 text-xs leading-5 text-[#747579]">
+                                                {resume.summary}
+                                            </p>
+                                        </div>
+
+                                        {resume.suggested_next_steps && resume.suggested_next_steps.length > 0 && (
+                                            <div className="rounded-xl bg-[#f7f7f4] p-4">
+                                                <p className="text-xs font-semibold text-[#303136]">
+                                                    Suggested next steps
+                                                </p>
+                                                <div className="mt-2 space-y-2">
+                                                    {resume.suggested_next_steps.slice(0, 3).map((step, idx) => (
+                                                        <div
+                                                            className="flex items-start gap-2 text-xs leading-5 text-[#66666d]"
+                                                            key={`${step}-${idx}`}
+                                                        >
+                                                            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#6558f5]" />
+                                                            <span>{step}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {resume.memories && resume.memories.length > 0 && (
+                                            <div className="rounded-xl border border-[#efefec] bg-white p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <p className="text-xs font-semibold text-[#303136]">
+                                                        Evidence trail
+                                                    </p>
+                                                    <span className="text-[10px] text-[#8e8e94]">
+                                                        {resume.memories.length} memories
+                                                    </span>
+                                                </div>
+                                                <div className="mt-2 space-y-2">
+                                                    {resume.memories.slice(0, 3).map((memory, idx) => (
+                                                        <button
+                                                            className="block w-full rounded-lg bg-[#fafaf8] p-2.5 text-left transition hover:bg-[#f2f0ff]"
+                                                            key={memory.id || idx}
+                                                            onClick={() => {
+                                                                setQuery(memory.summary);
+                                                                void executeSearch(
+                                                                    memory.summary,
+                                                                    selectedProjectId,
+                                                                    selectedGoalId,
+                                                                );
+                                                            }}
+                                                            type="button"
+                                                        >
+                                                            <p className="truncate text-xs font-medium text-[#414147]">
+                                                                {memory.summary}
+                                                            </p>
+                                                            <p className="mt-0.5 text-[10px] text-[#919197]">
+                                                                {memory.source}
+                                                            </p>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -901,11 +983,10 @@ export default function ContextPage() {
                                 const isSelected = selectedProjectId === project.id;
                                 return (
                                     <div
-                                        className={`flex items-center justify-between gap-3 rounded-xl border p-3 transition ${
-                                            isSelected
-                                                ? "border-[#a8a1ff] bg-[#f9f8ff]"
-                                                : "border-[#f0f0ee] bg-[#f7f7f4] hover:border-[#dfdcff] hover:bg-white"
-                                        }`}
+                                        className={`flex items-center justify-between gap-3 rounded-xl border p-3 transition ${isSelected
+                                            ? "border-[#a8a1ff] bg-[#f9f8ff]"
+                                            : "border-[#f0f0ee] bg-[#f7f7f4] hover:border-[#dfdcff] hover:bg-white"
+                                            }`}
                                         key={project.id}
                                     >
                                         <div className="min-w-0 flex-1">
@@ -920,11 +1001,10 @@ export default function ContextPage() {
                                             </p>
                                         </div>
                                         <button
-                                            className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-                                                isSelected
-                                                    ? "bg-[#6558f5] text-white"
-                                                    : "bg-white text-[#6558f5] ring-1 ring-[#e8e8e4] hover:bg-[#f5f4ff]"
-                                            }`}
+                                            className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${isSelected
+                                                ? "bg-[#6558f5] text-white"
+                                                : "bg-white text-[#6558f5] ring-1 ring-[#e8e8e4] hover:bg-[#f5f4ff]"
+                                                }`}
                                             onClick={() => filterByProject(project.id)}
                                             type="button"
                                         >
@@ -981,41 +1061,37 @@ export default function ContextPage() {
                                 const isSelected = selectedGoalId === goal.id;
                                 return (
                                     <div
-                                        className={`flex items-center justify-between gap-3 rounded-xl border p-3 transition ${
-                                            isSelected
-                                                ? "border-[#a8a1ff] bg-[#fbfaff]"
-                                                : "border-[#f0f0ee] bg-[#f7f7f4] hover:bg-white hover:border-[#dfdcff]"
-                                        }`}
+                                        className={`flex items-center justify-between gap-3 rounded-xl border p-3 transition ${isSelected
+                                            ? "border-[#a8a1ff] bg-[#fbfaff]"
+                                            : "border-[#f0f0ee] bg-[#f7f7f4] hover:bg-white hover:border-[#dfdcff]"
+                                            }`}
                                         key={goal.id}
                                     >
                                         <div className="flex min-w-0 flex-1 items-center gap-3">
                                             <button
                                                 aria-label={isCompleted ? "Mark goal as active" : "Mark goal as completed"}
-                                                className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border transition ${
-                                                    isCompleted
-                                                        ? "border-emerald-600 bg-emerald-600 text-white"
-                                                        : "border-[#c4c4be] bg-white text-transparent hover:border-[#6558f5]"
-                                                }`}
+                                                className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border transition ${isCompleted
+                                                    ? "border-emerald-600 bg-emerald-600 text-white"
+                                                    : "border-[#c4c4be] bg-white text-transparent hover:border-[#6558f5]"
+                                                    }`}
                                                 onClick={() => void toggleGoal(goal)}
                                                 type="button"
                                             >
                                                 <Icon className="h-3.5 w-3.5" name="check" />
                                             </button>
                                             <span
-                                                className={`truncate text-xs font-medium ${
-                                                    isCompleted ? "text-[#8e8e94] line-through" : "text-[#303136]"
-                                                }`}
+                                                className={`truncate text-xs font-medium ${isCompleted ? "text-[#8e8e94] line-through" : "text-[#303136]"
+                                                    }`}
                                             >
                                                 {goal.title}
                                             </span>
                                         </div>
                                         <div className="flex shrink-0 items-center gap-2">
                                             <button
-                                                className={`rounded-lg px-2 py-0.5 text-[10px] font-semibold transition ${
-                                                    isSelected
-                                                        ? "bg-[#6558f5] text-white"
-                                                        : "bg-white text-[#747579] ring-1 ring-[#e8e8e4] hover:text-[#5146d7]"
-                                                }`}
+                                                className={`rounded-lg px-2 py-0.5 text-[10px] font-semibold transition ${isSelected
+                                                    ? "bg-[#6558f5] text-white"
+                                                    : "bg-white text-[#747579] ring-1 ring-[#e8e8e4] hover:text-[#5146d7]"
+                                                    }`}
                                                 onClick={() => filterByGoal(goal.id)}
                                                 type="button"
                                             >
@@ -1132,11 +1208,10 @@ export default function ContextPage() {
                                     <td className="px-3 py-3 text-[#737379]">{formatDate(row.occurred_at)}</td>
                                     <td className="px-3 py-3 font-semibold">
                                         <span
-                                            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${
-                                                row.direction === "outbound"
-                                                    ? "bg-amber-50 text-amber-700"
-                                                    : "bg-emerald-50 text-emerald-700"
-                                            }`}
+                                            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${row.direction === "outbound"
+                                                ? "bg-amber-50 text-amber-700"
+                                                : "bg-emerald-50 text-emerald-700"
+                                                }`}
                                         >
                                             {row.direction}
                                         </span>
